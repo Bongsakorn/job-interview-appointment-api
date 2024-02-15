@@ -15,9 +15,9 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+_db/
 
 # Go workspace file
 go.work
 job-interview-appointment-api
-_db/
+.DS_Store
