@@ -1,0 +1,29 @@
+version: "3.7"
+services:
+  # api:
+  #   build:
+  #     context: .
+  #     args:
+  #       - APP_ENV=dev
+  #       - SERVICE_NAME=back-service-api
+  #   environment:
+  #     - APP_ENV=dev
+  #     - PORT=8080
+  #   ports:
+  #     - 8080:8080
+  #   depends_on:
+  #     - mongo
+  mongo:
+    image: mongo:latest
+    container_name: jobInterviewAppointment-mongodb
+    ports:
+      - 27017:27017
+    restart: always
+    environment:
+      MONGO_PACKAGE: mongodb-org
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: recruiting
+    volumes:
+      - ./_db:/data/db
+      - ./mongodb-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
