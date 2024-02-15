@@ -19,3 +19,5 @@
 
 # Go workspace file
 go.work
+job-interview-appointment-api
+_db/
