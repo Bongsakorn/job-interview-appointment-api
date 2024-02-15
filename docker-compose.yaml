@@ -1,18 +1,19 @@
 version: "3.7"
 services:
-  # api:
-  #   build:
-  #     context: .
-  #     args:
-  #       - APP_ENV=dev
-  #       - SERVICE_NAME=back-service-api
-  #   environment:
-  #     - APP_ENV=dev
-  #     - PORT=8080
-  #   ports:
-  #     - 8080:8080
-  #   depends_on:
-  #     - mongo
+  api:
+    container_name: jobInterviewAppointment-api
+    build:
+      context: .
+      args:
+        - APP_ENV=dev
+        - SERVICE_NAME=job-interview-appointment-api
+    environment:
+      - APP_ENV=dev
+      - PORT=8080
+    ports:
+      - 8080:8080
+    depends_on:
+      - mongo
   mongo:
     image: mongo:latest
     container_name: jobInterviewAppointment-mongodb
