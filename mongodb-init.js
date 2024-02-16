@@ -33,3 +33,13 @@ db.getCollection('users').insertOne(
       "created_at": new Date(),
     }
 );
+
+db.getCollection('users').insertOne(
+    {
+      "email": "user2@example.com",
+      "password": "$2a$14$PrKCOlqAW7GGiP5OUI8uk.k2YiQM6mrMRmgYcyk7Qs2VPTdh2aKa.",
+      "name": "ยูสเซอร์สอง",
+      "avatar_url": "",
+      "created_at": new Date(),
+    }
+);
