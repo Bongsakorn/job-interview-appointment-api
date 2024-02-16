@@ -3,11 +3,15 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
+	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	"github.com/gin-gonic/gin"
 
 	"job-interview-appointment-api/configuration"
 	"job-interview-appointment-api/database"
+	"job-interview-appointment-api/middleware"
 )
 
 func main() {
@@ -18,6 +22,18 @@ func main() {
 
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	r := gin.New()
+
+	limit, _ := strconv.Atoi(os.Getenv("REQUEST_RATE"))
+	store := ratelimit.InMemoryStore(&ratelimit.InMemoryOptions{
+		Rate:  time.Second,
+		Limit: uint(limit),
+	})
+	mw := ratelimit.RateLimiter(store, &ratelimit.Options{
+		ErrorHandler: middleware.ErrorHandler,
+		KeyFunc:      middleware.KeyFunc,
+	})
+
+	r.Use(mw)
 	r.Use(CORSMiddleware())
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())

@@ -175,18 +175,7 @@ func get(c *gin.Context) {
 func update(c *gin.Context) {
 	reqInp, _ := c.GetRawData()
 	resp := common.ResponseData{}
-	errorList := make(map[string][]string)
-
-	if c.Param("comment_id") == "" || c.Param("comment_id") == ":comment_id" {
-		errorList["comment_id"] = []string{"this field is required"}
-		resp.Status.Code = "FAILED"
-		resp.Status.Message = fmt.Sprintf("validate error")
-		resp.Errors = errorList
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
-
-	commentID, _ := primitive.ObjectIDFromHex(c.Param("comment_id"))
+	commentID := c.MustGet("comment_id").(primitive.ObjectID)
 	type RequestInput struct {
 		Message string `json:"message" validate:"required"`
 	}
@@ -211,23 +200,6 @@ func update(c *gin.Context) {
 	}
 
 	commentsCollection := database.OpenCollection(database.Client, "comments")
-	var currentComment bson.M
-	if err := commentsCollection.FindOne(context.Background(), bson.M{"_id": commentID}).Decode(&currentComment); err != nil {
-		resp.Status.Code = "FAILED"
-		resp.Status.Message = fmt.Sprintf("something went wrong when find data")
-		resp.Errors = err
-		c.JSON(http.StatusInternalServerError, resp)
-		return
-	}
-
-	// check owner
-	currentUserID, _ := primitive.ObjectIDFromHex(c.MustGet("currUserID").(string))
-	if currentComment["created_by"].(primitive.ObjectID) != currentUserID {
-		resp.Status.Code = "FAILED"
-		resp.Status.Message = fmt.Sprintf("this user is not allow to update this comment")
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
 
 	updateValue := map[string]interface{}{}
 	updateValue["message"] = commentUpdateValue.Message
@@ -248,37 +220,8 @@ func update(c *gin.Context) {
 
 func delete(c *gin.Context) {
 	resp := common.ResponseData{}
-	errorList := make(map[string][]string)
-
-	if c.Param("comment_id") == "" || c.Param("comment_id") == ":comment_id" {
-		errorList["comment_id"] = []string{"this field is required"}
-		resp.Status.Code = "FAILED"
-		resp.Status.Message = fmt.Sprintf("validate error")
-		resp.Errors = errorList
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
-
-	commentID, _ := primitive.ObjectIDFromHex(c.Param("comment_id"))
-
 	commentsCollection := database.OpenCollection(database.Client, "comments")
-	var currentComment bson.M
-	if err := commentsCollection.FindOne(context.Background(), bson.M{"_id": commentID}).Decode(&currentComment); err != nil {
-		resp.Status.Code = "FAILED"
-		resp.Status.Message = fmt.Sprintf("something went wrong when find data")
-		resp.Errors = err
-		c.JSON(http.StatusInternalServerError, resp)
-		return
-	}
-
-	// check owner
-	currentUserID, _ := primitive.ObjectIDFromHex(c.MustGet("currUserID").(string))
-	if currentComment["created_by"].(primitive.ObjectID) != currentUserID {
-		resp.Status.Code = "FAILED"
-		resp.Status.Message = fmt.Sprintf("this user is not allow to update this comment")
-		c.JSON(http.StatusBadRequest, resp)
-		return
-	}
+	commentID := c.MustGet("comment_id").(primitive.ObjectID)
 
 	if _, err := commentsCollection.DeleteOne(context.Background(), bson.M{"_id": commentID}); err != nil {
 		resp.Status.Code = "FAILED"

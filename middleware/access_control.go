@@ -1,14 +1,19 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"job-interview-appointment-api/common"
+	"job-interview-appointment-api/database"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Authentication
@@ -88,37 +93,43 @@ func ValidateToken(tokenString string) (*MyCustomClaims, error) {
 	return claims, fmt.Errorf("something went wrong when validate token")
 }
 
-// func ValidateToken() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		fmt.Println("@@@@@@@@@ Authorize @@@@@@@@@@@@@@@")
-// 		fmt.Printf("%v\n", c.Request.Header)
-// 		var val string
-// 		if val = c.Request.Header.Get("Payload"); val == "" {
-// 			c.AbortWithStatusJSON(401, map[string]string{"Message": "user hasn't logged in yet"})
-// 			return
-// 		}
+// OnlyOwner function using for validate only owner can interact with the comment
+func OnlyOwner() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		resp := common.ResponseData{}
+		errorList := make(map[string][]string)
 
-// 		var payload map[string]interface{}
-// 		err := json.Unmarshal([]byte(val), &payload)
-// 		if err != nil {
-// 			c.AbortWithStatusJSON(http.StatusUnauthorized, map[string]string{"Message": fmt.Sprintf("cannot unmarshal payload because %s", err.Error())})
-// 			return
-// 		}
-// 		fmt.Println(payload)
+		if c.Param("comment_id") == "" || c.Param("comment_id") == ":comment_id" {
+			errorList["comment_id"] = []string{"this field is required"}
+			resp.Status.Code = "FAILED"
+			resp.Status.Message = fmt.Sprintf("validate error")
+			resp.Errors = errorList
+			c.AbortWithStatusJSON(http.StatusBadRequest, resp)
+			return
+		}
 
-// 		// collection := database.OpenCollection(database.Client, "users")
-// 		// userDB := User{}
-// 		// ctx := context.Background()
+		commentID, _ := primitive.ObjectIDFromHex(c.Param("comment_id"))
 
-// 		// if err := collection.FindOne(ctx, bson.M{"uid": payload["user_id"]}).Decode(&userDB); err != nil {
-// 		// 	fmt.Println(err.Error())
-// 		// 	c.AbortWithStatusJSON(403, map[string]string{"Message": "not found user in system"})
-// 		// 	return
-// 		// }
+		commentsCollection := database.OpenCollection(database.Client, "comments")
+		var currentComment bson.M
+		if err := commentsCollection.FindOne(context.Background(), bson.M{"_id": commentID}).Decode(&currentComment); err != nil {
+			resp.Status.Code = "FAILED"
+			resp.Status.Message = fmt.Sprintf("something went wrong when find data")
+			resp.Errors = err
+			c.AbortWithStatusJSON(http.StatusInternalServerError, resp)
+			return
+		}
 
-// 		// fmt.Println(userDB)
-// 		c.Set("uid", payload["user_id"])
-// 		// c.Set("uid", userDB.UID)
-// 		c.Next()
-// 	}
-// }
+		// check owner
+		currentUserID, _ := primitive.ObjectIDFromHex(c.MustGet("currUserID").(string))
+		if currentComment["created_by"].(primitive.ObjectID) != currentUserID {
+			resp.Status.Code = "FAILED"
+			resp.Status.Message = fmt.Sprintf("you are not allowed to do any action to this comment")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, resp)
+			return
+		}
+
+		c.Set("comment_id", commentID)
+		c.Next()
+	}
+}
